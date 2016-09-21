@@ -70,11 +70,31 @@ int main( int argc, char *argv[] ) {
     }
 
     // Parte fundamental del programa
+	__m128 regA1, regA2, regA3, regA4;
+	__m128 regAlfa = _mm_set_ps(alfa, alfa, alfa, alfa);
+	__m128 regx,regy;
+	__m128 regAdd, regAdd1, regAdd2;
+
     assert (gettimeofday (&t0, NULL) == 0);
-    for (i=0; i<m; i++) {
-        for (j=0; j<n; j++) {
-            y[i] += alfa*A[i*n+j]*x[j];
-        }
+    for (i=0; i<m; i+=4) {
+		regy = _mm_load_ps(&(y[i]));
+		regAdd = _mm_setzero_ps();
+        for (j=0; j<n; j+=4) {
+            //y[i] += alfa*A[i*n+j]*x[j];
+			regx = _mm_load_ps(&(x[j]));
+			regA1 = _mm_load_ps(&A[i*n+j]);
+			regA2 = _mm_load_ps(&A[i*n+j+n]);
+			regA3 = _mm_load_ps(&A[i*n+j+2*n]);
+			regA4 = _mm_load_ps(&A[i*n+j+3*n]);
+			regA1 = _mm_mul_ps(_mm_mul_ps(regx, regAlfa), regA1);
+			regA2 = _mm_mul_ps(_mm_mul_ps(regx, regAlfa), regA2);
+			regA3 = _mm_mul_ps(_mm_mul_ps(regx, regAlfa), regA3);
+			regA4 = _mm_mul_ps(_mm_mul_ps(regx, regAlfa), regA4);
+			regAdd1 = _mm_hadd_ps(regA1, regA2);
+			regAdd2 = _mm_hadd_ps(regA3, regA4);
+			regAdd = _mm_add_ps(_mm_hadd_ps(regAdd1, regAdd2),regAdd);
+		}
+		_mm_store_ps(&(y[i]),_mm_add_ps(regAdd,regy));
     }
 	
     assert (gettimeofday (&t1, NULL) == 0);
