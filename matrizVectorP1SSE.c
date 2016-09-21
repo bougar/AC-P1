@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <pmmintrin.h>
 
 int main( int argc, char *argv[] ) {
 
@@ -16,8 +17,8 @@ int main( int argc, char *argv[] ) {
     // Parámetro 3 -> alfa
     // Parámetro 4 -> booleano que nos indica si se desea imprimir matrices y vectores de entrada y salida
     if(argc>3){
-        m = atoi(argv[1]);
-        n = atoi(argv[2]);
+        m = atoi(argv[1]); //Number of Rows
+        n = atoi(argv[2]); //Number of Columns
         alfa = atof(argv[3]);
         test = atoi(argv[4]);
     }
