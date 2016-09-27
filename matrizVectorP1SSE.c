@@ -72,28 +72,50 @@ int main( int argc, char *argv[] ) {
     // Parte fundamental del programa
 	__m128 regA1, regA2, regA3, regA4;
 	__m128 regAlfa = _mm_set_ps(alfa, alfa, alfa, alfa);
+	__m128 regAlfaX;
 	__m128 regx,regy;
 	__m128 regAdd, regAdd1, regAdd2;
 
     assert (gettimeofday (&t0, NULL) == 0);
-    for (i=0; i<m; i+=4) {
+    for (i=0; i<m && (i+3<m); i+=4) {
 		regy = _mm_load_ps(&(y[i]));
 		regAdd = _mm_setzero_ps();
-        for (j=0; j<n; j+=4) {
+        for (j=0; (j<n) && (j+3 < n); j+=4) {
             //y[i] += alfa*A[i*n+j]*x[j];
 			regx = _mm_load_ps(&(x[j]));
+			//Cargamos os flotantes nos rexistros de 128 bits
 			regA1 = _mm_load_ps(&A[i*n+j]);
 			regA2 = _mm_load_ps(&A[i*n+j+n]);
 			regA3 = _mm_load_ps(&A[i*n+j+2*n]);
 			regA4 = _mm_load_ps(&A[i*n+j+3*n]);
-			regA1 = _mm_mul_ps(_mm_mul_ps(regx, regAlfa), regA1);
-			regA2 = _mm_mul_ps(_mm_mul_ps(regx, regAlfa), regA2);
-			regA3 = _mm_mul_ps(_mm_mul_ps(regx, regAlfa), regA3);
-			regA4 = _mm_mul_ps(_mm_mul_ps(regx, regAlfa), regA4);
+
+			//Multiplicamos os 4 valores almacenados en X por alfa
+			regAlfaX = _mm_mul_ps(regx, regAlfa);
+
+			//Multipicamos o anterior, float a float contra os flotantes de A cargados de 4 en 4
+			regA1 = _mm_mul_ps(regAlfaX, regA1);
+			regA2 = _mm_mul_ps(regAlfaX, regA2);
+			regA3 = _mm_mul_ps(regAlfaX, regA3);
+			regA4 = _mm_mul_ps(regAlfaX, regA4);
+
+			//Sumanse en horizontal, de dous en dous os elementos de cada rexistro
+			//E os resultados almacenanse nun rexistro de 128 bits
 			regAdd1 = _mm_hadd_ps(regA1, regA2);
 			regAdd2 = _mm_hadd_ps(regA3, regA4);
+
+			//O obxetivo e sumar horizontalmente os catro elementos de cada rexistro
+			//Dado que co as operacións anterior so sumamos de 2 en 2, necesitamos
+			//outra operación de suma horizontal, para que finalmente nos devolva
+			//un rexitro que conteña a suma horizontal de todolos elementos
+			//de cada rexitro inicial. Por último levamos as contas nun rexistro
+			//no que vamos facendo sumas ao resultado anterior para si acabar
+			//coa suma das filas.
 			regAdd = _mm_add_ps(_mm_hadd_ps(regAdd1, regAdd2),regAdd);
 		}
+		//Unha vez chegado o final de cada conxunto de bloques en horizontal,
+		//teremos un rexistro que almacena un máximo de 4 flotantes, que representan
+		//O valor de aplicar a fórmula a catro filas, polo que xa podemos almacenalo
+		//na variable desexada
 		_mm_store_ps(&(y[i]),_mm_add_ps(regAdd,regy));
     }
 	
