@@ -5,7 +5,23 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <pmmintrin.h>
-
+#include <malloc.h>
+__m128 fillRegister(int i, int j, int n, float * data){
+	static float toRegister[4];
+	memset(toRegister, 0, sizeof(float) * 4);
+	int c,d;
+	for ( d=i; d < i + 4; d++ ){
+		for ( c=j; c < n && (c-j) < 4; c++ ){
+			toRegister[c-j]=data[d*n+c];
+		}
+		return _mm_loadu_ps(toRegister);
+	}
+}
+void debug(__m128 data){
+	float a[4];
+	_mm_store_ps(a,data);
+	printf("value: %f, %f, %f, %f\n", a[0], a[1], a[2], a[3]);
+}
 int main( int argc, char *argv[] ) {
 
     int m, n, test, i, j;
@@ -27,9 +43,9 @@ int main( int argc, char *argv[] ) {
         exit(0);
     }
 
-    float *x = (float *) malloc(n*sizeof(float));
-    float *A = (float *) malloc(m*n*sizeof(float));
-    float *y = (float *) malloc(m*sizeof(float));
+    float *x = (float *) _mm_malloc(n*sizeof(float), 16);
+    float *A = (float *) _mm_malloc(m*n*sizeof(float), 16);
+    float *y = (float *) _mm_malloc(m*sizeof(float), 16);
 
     // Se inicializan la matriz y los vectores
 
@@ -70,38 +86,60 @@ int main( int argc, char *argv[] ) {
     }
 
     // Parte fundamental del programa
-	__m128 regA1, regA2, regA3, regA4;
+	__m128 regA[4];
 	__m128 regAlfa = _mm_set_ps(alfa, alfa, alfa, alfa);
 	__m128 regAlfaX;
 	__m128 regx,regy;
 	__m128 regAdd, regAdd1, regAdd2;
 
+	float toRegister[4];
+
     assert (gettimeofday (&t0, NULL) == 0);
-    for (i=0; i<m && (i+3<m); i+=4) {
+    for (i=0; i<m; i+=4) {
 		regy = _mm_load_ps(&(y[i]));
 		regAdd = _mm_setzero_ps();
-        for (j=0; (j<n) && (j+3 < n); j+=4) {
+        for (j=0; (j<n) ; j+=4) {
             //y[i] += alfa*A[i*n+j]*x[j];
 			regx = _mm_load_ps(&(x[j]));
 			//Cargamos os flotantes nos rexistros de 128 bits
-			regA1 = _mm_load_ps(&A[i*n+j]);
-			regA2 = _mm_load_ps(&A[i*n+j+n]);
-			regA3 = _mm_load_ps(&A[i*n+j+2*n]);
-			regA4 = _mm_load_ps(&A[i*n+j+3*n]);
-
+			if ( i + 4 > m ) {
+				regA[0] = _mm_setzero_ps();
+				regA[1] = _mm_setzero_ps();
+				regA[2] = _mm_setzero_ps();
+				regA[3] = _mm_setzero_ps();
+				int c,d;
+				for ( c=i; c < m; c++ )
+					regA[c-i] = fillRegister(c,j,n,A);
+			} else if ( j+4 > n){
+				memset(toRegister, 0, sizeof(float) * 4);
+				int c,d;
+				for ( d=i; d < i + 4; d++ ){
+					for ( c=j; c < n; c++ ){
+						toRegister[c-j]=A[d*n+c];
+					}
+					regA[d-i] = _mm_loadu_ps(toRegister);
+				}
+				
+			} else
+			{
+				regA[0] = _mm_loadu_ps(&A[i*n+j]);
+				regA[1] = _mm_loadu_ps(&A[i*n+j+n]);
+				regA[2] = _mm_loadu_ps(&A[i*n+j+2*n]);
+				regA[3] = _mm_loadu_ps(&A[i*n+j+3*n]);
+			}
 			//Multiplicamos os 4 valores almacenados en X por alfa
 			regAlfaX = _mm_mul_ps(regx, regAlfa);
 
 			//Multipicamos o anterior, float a float contra os flotantes de A cargados de 4 en 4
-			regA1 = _mm_mul_ps(regAlfaX, regA1);
-			regA2 = _mm_mul_ps(regAlfaX, regA2);
-			regA3 = _mm_mul_ps(regAlfaX, regA3);
-			regA4 = _mm_mul_ps(regAlfaX, regA4);
+			regA[0] = _mm_mul_ps(regAlfaX, regA[0]);
+			regA[1] = _mm_mul_ps(regAlfaX, regA[1]);
+			regA[2] = _mm_mul_ps(regAlfaX, regA[2]);
+			regA[3] = _mm_mul_ps(regAlfaX, regA[3]);
 
 			//Sumanse en horizontal, de dous en dous os elementos de cada rexistro
 			//E os resultados almacenanse nun rexistro de 128 bits
-			regAdd1 = _mm_hadd_ps(regA1, regA2);
-			regAdd2 = _mm_hadd_ps(regA3, regA4);
+			regAdd1 = _mm_hadd_ps(regA[0], regA[1]);
+			regAdd2 = _mm_hadd_ps(regA[2], regA[3]);
 
 			//O obxetivo e sumar horizontalmente os catro elementos de cada rexistro
 			//Dado que co as operacións anterior so sumamos de 2 en 2, necesitamos
@@ -154,9 +192,6 @@ int main( int argc, char *argv[] ) {
 
     printf ("Tiempo      = %ld:%ld(seg:mseg)\n", t.tv_sec, t.tv_usec/1000);
 
-    free(x);
-    free(y);
-    free(A);
 	
     return 0;
 }
