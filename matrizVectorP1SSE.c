@@ -83,48 +83,47 @@ int main( int argc, char *argv[] ) {
     }
 
     // Parte fundamental del programa
+	//Declaración de los registros necesarios
 	__m128 regA[4];
-	__m128 regAlfa = _mm_set_ps(alfa, alfa, alfa, alfa);
 	__m128 regAlfaX;
-	__m128 regx,regy;
-	__m128 regAdd, regAdd1, regAdd2;
+	__m128 regX;
+	__m128 regY;
+	__m128 regAdd;
+	__m128 regHAdd1, regHAdd2;
+	__m128 regAlfa = _mm_set_ps(alfa, alfa, alfa, alfa);
 
+	//Variables necesarias	
 	float toRegister[4];
+	int c;
 
     assert (gettimeofday (&t0, NULL) == 0);
     for (i=0; i<m; i+=4) {
-		regy = _mm_load_ps(&(y[i]));
+		regY = _mm_load_ps(&(y[i]));
 		regAdd = _mm_setzero_ps();
         for (j=0; (j<n) ; j+=4) {
-            //y[i] += alfa*A[i*n+j]*x[j];
-			regx = _mm_load_ps(&(x[j]));
+			regX = _mm_load_ps(&(x[j]));
 			//Cargamos os flotantes nos rexistros de 128 bits
 			if ( i + 4 > m ) {
 				regA[0] = _mm_setzero_ps();
 				regA[1] = _mm_setzero_ps();
 				regA[2] = _mm_setzero_ps();
 				regA[3] = _mm_setzero_ps();
-				int c,d;
 				for ( c=i; c < m; c++ )
 					regA[c-i] = fillRegister(c,j,n,A);
+
 			} else if ( j+4 > n){
 				memset(toRegister, 0, sizeof(float) * 4);
-				int c,d;
-				for ( d=i; d < i + 4; d++ ){
-					for ( c=j; c < n; c++ ){
-						toRegister[c-j]=A[d*n+c];
-					}
-					regA[d-i] = _mm_load_ps(toRegister);
+				for ( c=i; c < i + 4; c++ ){
+					regA[c-i] = fillRegister(c,j,n,A);
 				}
 				
 			} else if ( n % 4 != 0){
-				float * myF = _mm_malloc(4*sizeof(float), 16);
-				memset( myF, 0, 4 * sizeof(float) );
-				int z;
-				for (z=0; z<4; z++){
-				    memcpy (myF, &(A[i*n+j+z*n]), 4*sizeof(float));	
-					regA[z]=_mm_load_ps(myF);
+				memset( toRegister, 0, 4 * sizeof(float) );
+				for (c=0; c<4; c++){
+				    memcpy (toRegister, &(A[i*n+j+c*n]), 4*sizeof(float));	
+					regA[c]=_mm_load_ps(toRegister);
 				}
+
 			}else
 			{
 				regA[0] = _mm_load_ps(&A[i*n+j]);
@@ -133,7 +132,7 @@ int main( int argc, char *argv[] ) {
 				regA[3] = _mm_load_ps(&A[i*n+j+3*n]);
 			}
 			//Multiplicamos os 4 valores almacenados en X por alfa
-			regAlfaX = _mm_mul_ps(regx, regAlfa);
+			regAlfaX = _mm_mul_ps(regX, regAlfa);
 
 			//Multipicamos o anterior, float a float contra os flotantes de A cargados de 4 en 4
 			regA[0] = _mm_mul_ps(regAlfaX, regA[0]);
@@ -143,8 +142,8 @@ int main( int argc, char *argv[] ) {
 
 			//Sumanse en horizontal, de dous en dous os elementos de cada rexistro
 			//E os resultados almacenanse nun rexistro de 128 bits
-			regAdd1 = _mm_hadd_ps(regA[0], regA[1]);
-			regAdd2 = _mm_hadd_ps(regA[2], regA[3]);
+			regHAdd1 = _mm_hadd_ps(regA[0], regA[1]);
+			regHAdd2 = _mm_hadd_ps(regA[2], regA[3]);
 
 			//O obxetivo e sumar horizontalmente os catro elementos de cada rexistro
 			//Dado que co as operacións anterior so sumamos de 2 en 2, necesitamos
@@ -153,13 +152,13 @@ int main( int argc, char *argv[] ) {
 			//de cada rexitro inicial. Por último levamos as contas nun rexistro
 			//no que vamos facendo sumas ao resultado anterior para si acabar
 			//coa suma das filas.
-			regAdd = _mm_add_ps(_mm_hadd_ps(regAdd1, regAdd2),regAdd);
+			regAdd = _mm_add_ps(_mm_hadd_ps(regHAdd1, regHAdd2),regAdd);
 		}
 		//Unha vez chegado o final de cada conxunto de bloques en horizontal,
 		//teremos un rexistro que almacena un máximo de 4 flotantes, que representan
 		//O valor de aplicar a fórmula a catro filas, polo que xa podemos almacenalo
 		//na variable desexada
-		_mm_store_ps(&(y[i]),_mm_add_ps(regAdd,regy));
+		_mm_store_ps(&(y[i]),_mm_add_ps(regAdd,regY));
     }
 	
     assert (gettimeofday (&t1, NULL) == 0);
