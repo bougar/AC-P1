@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h> 
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
@@ -14,14 +15,10 @@ __m128 fillRegister(int i, int j, int n, float * data){
 		for ( c=j; c < n && (c-j) < 4; c++ ){
 			toRegister[c-j]=data[d*n+c];
 		}
-		return _mm_loadu_ps(toRegister);
+		return _mm_load_ps(toRegister);
 	}
 }
-void debug(__m128 data){
-	float a[4];
-	_mm_store_ps(a,data);
-	printf("value: %f, %f, %f, %f\n", a[0], a[1], a[2], a[3]);
-}
+
 int main( int argc, char *argv[] ) {
 
     int m, n, test, i, j;
@@ -117,15 +114,23 @@ int main( int argc, char *argv[] ) {
 					for ( c=j; c < n; c++ ){
 						toRegister[c-j]=A[d*n+c];
 					}
-					regA[d-i] = _mm_loadu_ps(toRegister);
+					regA[d-i] = _mm_load_ps(toRegister);
 				}
 				
-			} else
+			} else if ( n % 4 != 0){
+				float * myF = _mm_malloc(4*sizeof(float), 16);
+				memset( myF, 0, 4 * sizeof(float) );
+				int z;
+				for (z=0; z<4; z++){
+				    memcpy (myF, &(A[i*n+j+z*n]), 4*sizeof(float));	
+					regA[z]=_mm_load_ps(myF);
+				}
+			}else
 			{
-				regA[0] = _mm_loadu_ps(&A[i*n+j]);
-				regA[1] = _mm_loadu_ps(&A[i*n+j+n]);
-				regA[2] = _mm_loadu_ps(&A[i*n+j+2*n]);
-				regA[3] = _mm_loadu_ps(&A[i*n+j+3*n]);
+				regA[0] = _mm_load_ps(&A[i*n+j]);
+				regA[1] = _mm_load_ps(&A[i*n+j+n]);
+				regA[2] = _mm_load_ps(&A[i*n+j+2*n]);
+				regA[3] = _mm_load_ps(&A[i*n+j+3*n]);
 			}
 			//Multiplicamos os 4 valores almacenados en X por alfa
 			regAlfaX = _mm_mul_ps(regx, regAlfa);
