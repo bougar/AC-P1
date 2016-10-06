@@ -82,8 +82,8 @@ int main( int argc, char *argv[] ) {
         printf("\n");
     }
 
-    // Parte fundamental del programa
-	//Declaración de los registros necesarios
+    // Parte fundamental do programa
+	//Declaración dos rexistros necesarios
 	__m128 regA[4];
 	__m128 regAlfaX;
 	__m128 regX;
@@ -95,7 +95,6 @@ int main( int argc, char *argv[] ) {
 	//Variables necesarias	
 	float toRegister[4];
 	int c;
-
     assert (gettimeofday (&t0, NULL) == 0);
     for (i=0; i<m; i+=4) {
 		regY = _mm_load_ps(&(y[i]));
@@ -103,33 +102,26 @@ int main( int argc, char *argv[] ) {
         for (j=0; (j<n) ; j+=4) {
 			regX = _mm_load_ps(&(x[j]));
 			//Cargamos os flotantes nos rexistros de 128 bits
-			if ( i + 4 > m ) {
-				regA[0] = _mm_setzero_ps();
-				regA[1] = _mm_setzero_ps();
-				regA[2] = _mm_setzero_ps();
-				regA[3] = _mm_setzero_ps();
-				for ( c=i; c < m; c++ )
+
+			/*Se o número de filas que debemos coller e menor a 4,
+			inicializamos a cero os 4 rexistros e os rellenamos soamente
+			os que necesitemos. Tamén se contempla que o número de columnas
+			a coller e menor a 4. Nese caso cada rexistro e rellenado soamente
+			con tantos datos como columnas nos quden. A lóxica deste último
+			levase a cabo na función fillRegister*/
+			if ( i + 4 > m || j + 4 > n) { 
+				for ( c=i;(c < m && c < i+4); c++ )
 					regA[c-i] = fillRegister(c,j,n,A);
 
-			} else if ( j+4 > n){
-				memset(toRegister, 0, sizeof(float) * 4);
-				for ( c=i; c < i + 4; c++ ){
-					regA[c-i] = fillRegister(c,j,n,A);
-				}
-				
-			} else if ( n % 4 != 0){
-				memset( toRegister, 0, 4 * sizeof(float) );
-				for (c=0; c<4; c++){
-				    memcpy (toRegister, &(A[i*n+j+c*n]), 4*sizeof(float));	
-					regA[c]=_mm_load_ps(toRegister);
-				}
+			}
 
-			}else
+			/*En outro caso procedemos a carga dos rexistros de forma normal*/
+			else
 			{
-				regA[0] = _mm_load_ps(&A[i*n+j]);
-				regA[1] = _mm_load_ps(&A[i*n+j+n]);
-				regA[2] = _mm_load_ps(&A[i*n+j+2*n]);
-				regA[3] = _mm_load_ps(&A[i*n+j+3*n]);
+				regA[0] = _mm_loadu_ps(&A[i*n+j]);
+				regA[1] = _mm_loadu_ps(&A[i*n+j+n]);
+				regA[2] = _mm_loadu_ps(&A[i*n+j+2*n]);
+				regA[3] = _mm_loadu_ps(&A[i*n+j+3*n]);
 			}
 			//Multiplicamos os 4 valores almacenados en X por alfa
 			regAlfaX = _mm_mul_ps(regX, regAlfa);
