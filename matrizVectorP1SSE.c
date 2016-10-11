@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
@@ -8,7 +9,7 @@
 
 int main( int argc, char *argv[] ) {
 
-    int m, n, test, i, j;
+    int m, n, n2, m2, test, i, j;
     float alfa;
     struct timeval t0, t1, t;
 
@@ -26,16 +27,21 @@ int main( int argc, char *argv[] ) {
         printf("NUMERO DE PARAMETROS INCORRECTO\n");
         exit(0);
     }
+	n2 = n + (4 -(n % 4));
+	m2 = m + (4 -(m % 4));
 
-    float *x = (float *) malloc(n*sizeof(float));
-    float *A = (float *) malloc(m*n*sizeof(float));
-    float *y = (float *) malloc(m*sizeof(float));
+    float *x = (float *) malloc(n2*sizeof(float));
+    float *A = (float *) malloc(m2*n2*sizeof(float));
+    float *y = (float *) malloc(m2*sizeof(float));
+	memset(A, 0, n2*m2*sizeof(float));
+	memset(x, 0, n2*sizeof(float));
+	memset(y, 0, m2*sizeof(float));
 
     // Se inicializan la matriz y los vectores
 
     for(i=0; i<m; i++){
         for(j=0; j<n; j++){
-            A[i*n+j] = 1+i+j;
+            A[i*n2+j] = 1+i+j;
         }
     }
 
@@ -49,21 +55,21 @@ int main( int argc, char *argv[] ) {
 
     if(test){
         printf("\nMatriz A es...\n");
-        for(i=0; i<m; i++){
-            for(j=0; j<n; j++){
-                printf("%f ", A[i*n+j]);
+        for(i=0; i<m2; i++){
+            for(j=0; j<n2; j++){
+                printf("%f ", A[i*n2+j]);
             }
             printf("\n");
         }
 
         printf("\nVector x es...\n");
-        for(i=0; i<n; i++){
+        for(i=0; i<n2; i++){
             printf("%f ", x[i]);
         }
         printf("\n");
 
         printf("\nVector y al principio es...\n");
-        for(i=0; i<m; i++){
+        for(i=0; i<m2; i++){
             printf("%f ", y[i]);
         }
         printf("\n");
@@ -77,17 +83,17 @@ int main( int argc, char *argv[] ) {
 	__m128 regAdd, regAdd1, regAdd2;
 
     assert (gettimeofday (&t0, NULL) == 0);
-    for (i=0; i<m && (i+3<m); i+=4) {
+    for (i=0; i<m2 ; i+=4) {
 		regy = _mm_load_ps(&(y[i]));
 		regAdd = _mm_setzero_ps();
-        for (j=0; (j<n) && (j+3 < n); j+=4) {
+        for (j=0; (j<n2); j+=4) {
             //y[i] += alfa*A[i*n+j]*x[j];
 			regx = _mm_load_ps(&(x[j]));
 			//Cargamos os flotantes nos rexistros de 128 bits
-			regA1 = _mm_load_ps(&A[i*n+j]);
-			regA2 = _mm_load_ps(&A[i*n+j+n]);
-			regA3 = _mm_load_ps(&A[i*n+j+2*n]);
-			regA4 = _mm_load_ps(&A[i*n+j+3*n]);
+			regA1 = _mm_load_ps(&A[i*n2+j]);
+			regA2 = _mm_load_ps(&A[i*n2+j+n2]);
+			regA3 = _mm_load_ps(&A[i*n2+j+2*n2]);
+			regA4 = _mm_load_ps(&A[i*n2+j+3*n2]);
 
 			//Multiplicamos os 4 valores almacenados en X por alfa
 			regAlfaX = _mm_mul_ps(regx, regAlfa);
@@ -137,7 +143,7 @@ int main( int argc, char *argv[] ) {
         // Se calcula el producto sin ninguna vectorización
         for (i=0; i<m; i++) {
             for (j=0; j<n; j++) {
-                testy[i] += alfa*A[i*n+j]*x[j];
+                testy[i] += alfa*A[i*n2+j]*x[j];
             }
         }
 
@@ -160,7 +166,4 @@ int main( int argc, char *argv[] ) {
 	
     return 0;
 }
-
-
-
 
