@@ -160,9 +160,9 @@ int main( int argc, char *argv[] ) {
 
     printf ("Tiempo      = %ld:%ld(seg:mseg)\n", t.tv_sec, t.tv_usec/1000);
 
-    free(x);
-    free(y);
-    free(A);
+    _mm_free(x);
+    _mm_free(y);
+    _mm_free(A);
 	
     return 0;
 }
