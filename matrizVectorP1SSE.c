@@ -30,9 +30,9 @@ int main( int argc, char *argv[] ) {
 	n2 = n + (4 -(n % 4));
 	m2 = m + (4 -(m % 4));
 
-    float *x = (float *) malloc(n2*sizeof(float));
-    float *A = (float *) malloc(m2*n2*sizeof(float));
-    float *y = (float *) malloc(m2*sizeof(float));
+    float *x = (float *) _mm_malloc(n2*sizeof(float), 16);
+    float *A = (float *) _mm_malloc(m2*n2*sizeof(float), 16);
+    float *y = (float *) _mm_malloc(m2*sizeof(float), 16);
 	memset(A, 0, n2*m2*sizeof(float));
 	memset(x, 0, n2*sizeof(float));
 	memset(y, 0, m2*sizeof(float));
