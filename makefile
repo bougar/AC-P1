@@ -13,7 +13,7 @@ autovec: matrizVectorP1.c
 	gcc -O3 -march=nocona -msse3 -ftree-vectorize -ftree-vectorizer-verbose=2 -o matrizVectorP1Vec.out matrizVectorP1.c -lm
 
 p1SSE: matrizVectorP1SSE.c
-	gcc  -O0 -march=nocona -msse3 -o matrizVectorP1SSE.out matrizVectorP1SSE.c -lm -g
+	gcc  -O3 -march=nocona -msse3 -o matrizVectorP1SSE.out matrizVectorP1SSE.c -lm 
 
 
 clean:

@@ -77,6 +77,8 @@ int main( int argc, char *argv[] ) {
 
     // Parte fundamental del programa
 	__m128 regA1, regA2, regA3, regA4;
+	__m128 regAux1, regAux2, regAux3, regAux4;
+	__m128 regAuxF1 , regAuxF2, regAuxF3, regAuxF4;
 	__m128 regAlfa = _mm_set_ps(alfa, alfa, alfa, alfa);
 	__m128 regAlfaX;
 	__m128 regx,regy;
@@ -104,10 +106,23 @@ int main( int argc, char *argv[] ) {
 			regA3 = _mm_mul_ps(regAlfaX, regA3);
 			regA4 = _mm_mul_ps(regAlfaX, regA4);
 
+			regAux1 = _mm_shuffle_ps(regA1, regA2, _MM_SHUFFLE(1,0,1,0));
+			regAux2 = _mm_shuffle_ps(regA3, regA4, _MM_SHUFFLE(1,0,1,0));
+
+			regAuxF1 = _mm_shuffle_ps(regAux1, regAux2, _MM_SHUFFLE(2,0,2,0));
+			regAuxF2 = _mm_shuffle_ps(regAux1, regAux2, _MM_SHUFFLE(3,1,3,1));
+
+			regAux1 = _mm_shuffle_ps(regA1, regA2, _MM_SHUFFLE(3,2,3,2));
+			regAux2 = _mm_shuffle_ps(regA3, regA4, _MM_SHUFFLE(3,2,3,2));
+
+			regAuxF3 = _mm_shuffle_ps(regAux1, regAux2, _MM_SHUFFLE(2,0,2,0));
+			regAuxF4 = _mm_shuffle_ps(regAux1, regAux2, _MM_SHUFFLE(3,1,3,1));
+
+
 			//Sumanse en horizontal, de dous en dous os elementos de cada rexistro
 			//E os resultados almacenanse nun rexistro de 128 bits
-			regAdd1 = _mm_hadd_ps(regA1, regA2);
-			regAdd2 = _mm_hadd_ps(regA3, regA4);
+			regAdd1 = _mm_add_ps(regAuxF1, regAuxF2);
+			regAdd2 = _mm_add_ps(regAuxF3, regAuxF4);
 
 			//O obxetivo e sumar horizontalmente os catro elementos de cada rexistro
 			//Dado que co as operacións anterior so sumamos de 2 en 2, necesitamos
@@ -116,7 +131,7 @@ int main( int argc, char *argv[] ) {
 			//de cada rexitro inicial. Por último levamos as contas nun rexistro
 			//no que vamos facendo sumas ao resultado anterior para si acabar
 			//coa suma das filas.
-			regAdd = _mm_add_ps(_mm_hadd_ps(regAdd1, regAdd2),regAdd);
+			regAdd = _mm_add_ps(_mm_add_ps(regAdd1, regAdd2),regAdd);
 		}
 		//Unha vez chegado o final de cada conxunto de bloques en horizontal,
 		//teremos un rexistro que almacena un máximo de 4 flotantes, que representan
