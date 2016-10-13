@@ -10,6 +10,8 @@ echo "Usando hadd con loadU:"
 ./matrizVectorP1SSELoadU.out $1 $2 $3 0
 echo "Usando hadd con load:"
 ./matrizVectorP1SSE.out $1 $2 $3 0
-echo "Sin usar hAdd:"
+echo "Sin usar hAdd con load:"
 ./matrizVectorP1SSENoHadd.out $1 $2 $3 0
+echo "Sin usar hAdd con loadU:"
+./matrizVectorP1SSENoHaddLoadU.out $1 $2 $3 0
 echo ""
