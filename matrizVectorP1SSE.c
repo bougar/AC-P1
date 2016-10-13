@@ -27,12 +27,21 @@ int main( int argc, char *argv[] ) {
         printf("NUMERO DE PARAMETROS INCORRECTO\n");
         exit(0);
     }
+	
+	//Calculamos o múltiplo de 4 máis cercano de filas e de columnas
+	//Para poder realizar os calculos con números que non sexan
+	//múltiplo de catro
 	n2 = n + (4 -(n % 4));
 	m2 = m + (4 -(m % 4));
 
-    float *x = (float *) malloc(n2*sizeof(float));
-    float *A = (float *) malloc(m2*n2*sizeof(float));
-    float *y = (float *) malloc(m2*sizeof(float));
+
+	//Reserva de memoria alineada a 16 bytes
+    float *x = (float *) _mm_malloc(n2*sizeof(float), 16);
+    float *A = (float *) _mm_malloc(m2*n2*sizeof(float), 16);
+    float *y = (float *) _mm_malloc(m2*sizeof(float), 16);
+	
+	//Inicializamos a cero todos os vectores e matrices para 
+	//evitar problemas de operación no algoritmo
 	memset(A, 0, n2*m2*sizeof(float));
 	memset(x, 0, n2*sizeof(float));
 	memset(y, 0, m2*sizeof(float));
@@ -76,6 +85,8 @@ int main( int argc, char *argv[] ) {
     }
 
     // Parte fundamental del programa
+
+	//Reserva de todos os rexistros utilizados no programa
 	__m128 regA1, regA2, regA3, regA4;
 	__m128 regAux1, regAux2, regAux3, regAux4;
 	__m128 regAuxF1 , regAuxF2, regAuxF3, regAuxF4;
@@ -89,8 +100,10 @@ int main( int argc, char *argv[] ) {
 		regy = _mm_load_ps(&(y[i]));
 		regAdd = _mm_setzero_ps();
         for (j=0; (j<n2); j+=4) {
-            //y[i] += alfa*A[i*n+j]*x[j];
+			
+			//Cargamos o catro valores de rexistro X
 			regx = _mm_load_ps(&(x[j]));
+
 			//Cargamos os flotantes nos rexistros de 128 bits
 			regA1 = _mm_load_ps(&A[i*n2+j]);
 			regA2 = _mm_load_ps(&A[i*n2+j+n2]);
@@ -106,6 +119,8 @@ int main( int argc, char *argv[] ) {
 			regA3 = _mm_mul_ps(regAlfaX, regA3);
 			regA4 = _mm_mul_ps(regAlfaX, regA4);
 
+			/*Pra sumar catro columnas dunha fila, necesitamos que cada columna se reparta
+			a un rexistro cada unha, tendo en conta que teñen que ter a mesma posicion*/
 			regAux1 = _mm_shuffle_ps(regA1, regA2, _MM_SHUFFLE(1,0,1,0));
 			regAux2 = _mm_shuffle_ps(regA3, regA4, _MM_SHUFFLE(1,0,1,0));
 
@@ -118,19 +133,14 @@ int main( int argc, char *argv[] ) {
 			regAuxF3 = _mm_shuffle_ps(regAux1, regAux2, _MM_SHUFFLE(2,0,2,0));
 			regAuxF4 = _mm_shuffle_ps(regAux1, regAux2, _MM_SHUFFLE(3,1,3,1));
 
-
-			//Sumanse en horizontal, de dous en dous os elementos de cada rexistro
-			//E os resultados almacenanse nun rexistro de 128 bits
+			//Sumamos en vertical de dous en dous.
 			regAdd1 = _mm_add_ps(regAuxF1, regAuxF2);
 			regAdd2 = _mm_add_ps(regAuxF3, regAuxF4);
 
-			//O obxetivo e sumar horizontalmente os catro elementos de cada rexistro
-			//Dado que co as operacións anterior so sumamos de 2 en 2, necesitamos
-			//outra operación de suma horizontal, para que finalmente nos devolva
-			//un rexitro que conteña a suma horizontal de todolos elementos
-			//de cada rexitro inicial. Por último levamos as contas nun rexistro
-			//no que vamos facendo sumas ao resultado anterior para si acabar
-			//coa suma das filas.
+			//Os dous rexistros anteriores deben sumarse entre sí para obter
+			//a suma das catro columnas. Por outro lado debemos de levar a conta
+			//das operacións anteriores, que neste caso almacenanse en "regAdd"
+			//ao que lle sumamos a suma mencionada previamente
 			regAdd = _mm_add_ps(_mm_add_ps(regAdd1, regAdd2),regAdd);
 		}
 		//Unha vez chegado o final de cada conxunto de bloques en horizontal,
