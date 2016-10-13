@@ -1,10 +1,4 @@
-default:
-	@echo "Usage:"
-	@echo "   p1c:     Practica 1 sin optimizaciones"
-	@echo "   autovec    Practica 1 con vectorizacion automatica"
-	@echo "   p1SSE:   Practica 1 con vectorizacion manual"
-
-all: pSSEc autovec manvec1 manvec2 manvec3
+all: p1c autovec p1SSE1 p1SSE2 p1SSE3 
 
 p1c: matrizVectorP1.c
 	gcc -O3 -o matrizVectorP1.out matrizVectorP1.c -lm
@@ -12,10 +6,14 @@ p1c: matrizVectorP1.c
 autovec: matrizVectorP1.c
 	gcc -O3 -march=nocona -msse3 -ftree-vectorize -ftree-vectorizer-verbose=2 -o matrizVectorP1Vec.out matrizVectorP1.c -lm
 
-p1SSE: matrizVectorP1SSE.c
+p1SSE1: matrizVectorP1SSE.c
 	gcc  -O3 -march=nocona -msse3 -o matrizVectorP1SSE.out matrizVectorP1SSE.c -lm
 
+p1SSE2: matrizVectorP1SSENoHadd.c
+	gcc  -O3 -march=nocona -msse3 -o matrizVectorP1SSENoHadd.out matrizVectorP1SSENoHadd.c -lm
+
+p1SSE3: matrizVectorP1SSELoadU.c
+	gcc  -O3 -march=nocona -msse3 -o matrizVectorP1SSELoadU.out matrizVectorP1SSELoadU.c -lm
 
 clean:
-	rm -f p3c matrizVectorP1.out matrizVectorP1Vec.out matrizVectorP1SSE.out
-
+	rm -f p3c *.out
